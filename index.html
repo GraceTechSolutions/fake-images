@@ -8,9 +8,39 @@
 <h1>This is a Heading</h1>
 <p>This is a paragraph.</p>
   <script>
-    var fs = require('fs');
-    var files = fs.readdirSync('.');
-    console.log(files)
+    var allItems;
+function GetFilesFromFolder(listTitle, folderServerRelativeUrl)
+{
+    var context = new SP.ClientContext.get_current();
+    var web = context.get_web();
+    var list = web.get_lists().getByTitle(listTitle);
+    // Use createAllItemsQuery to get items inside subfolders as well. Otherwise use new SP.CamlQuery() to get items from a single folder only
+    var query = SP.CamlQuery.createAllItemsQuery();
+    query.set_folderServerRelativeUrl(folderServerRelativeUrl);
+    allItems = list.getItems(query);
+    context.load(allItems, 'Include(File, FileSystemObjectType)');
+    context.executeQueryAsync(Function.createDelegate(this, this.OnSuccess), Function.createDelegate(this, this.OnFailure));
+}
+function OnSuccess()
+{                                              
+    var listItemEnumerator = allItems.getEnumerator();
+    while(listItemEnumerator.moveNext())
+    {
+        var currentItem = listItemEnumerator.get_current();                                                                                                                     
+        if(currentItem.get_fileSystemObjectType() == "0")
+        {
+            var file = currentItem.get_file();
+            if(file != null)
+            {
+                alert('File Name: ' + file.get_name() + '\n' + 'File Url: ' + file.get_serverRelativeUrl());                                                                                     
+            }
+        }
+    }                                              
+}
+
+function OnFailure(sender, args) {
+    alert("Failed. Message:" + args.get_message());
+}
   </script>
 </body>
 </html>
